@@ -1,0 +1,476 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 25 March 2009), see www.w3.org" />
+  <meta content="text/html; charset=us-ascii" http-equiv=
+  "content-type" />
+
+  <title>ElectricFlow Plugin for VMware vCloud
+  Director</title>
+  <link rel="stylesheet" href=
+  "../../plugins/@PLUGIN_KEY@/pluginhelp.css" type="text/css"
+  media="screen" />
+</head>
+
+<body>
+  <div class="help">
+    <h1>FitNesse</h1>
+
+    <p>Plugin Version @PLUGIN_VERSION@</p>
+    <hr style=
+    "margin-left: -10px; margin-top: 10px; height: 1px; width: 100%; color: #5981BD;"
+    noshade="noshade" />		<p>Revised on July 1, 2015</p>
+    <!-- The tool description should answer these kinds of questions:
+What is the tool itself is used for in the development
+process? Who would use this tool? What is the general use-case or
+problem that this tool solves? Look at the tool's documentation or
+website(s) to get their own descriptions. Look at Wikipedia or other
+outside websites. If there is a Hudson plugin, read their
+documentation for ideas, examples, etc. It's OK to copy word-for-word
+only if appropriate, such as FOSS - but not commercial software.
+-->
+
+    <p>Great software requires collaboration and communication.
+    FitNesse is a tool for enhancing collaboration in software
+    development.</p>
+
+    <p>FitNesse enables customers, testers, and programmers to
+    learn what their software should do, and to automatically
+    compare that to what it actually does do. It compares
+    customers' expectations to actual results. It's an invaluable
+    way to collaborate on complicated problems (and get them right)
+    early in development.</p>
+
+    <p>From another perspective, FitNesse is a lightweight,
+    open-source framework that makes it easy for software teams
+    to:</p>
+
+    <ul>
+      <li>Collaboratively define Acceptance Tests -- web pages
+      containing simple tables of inputs and expected outputs.</li>
+
+      <li>Run those tests and see the results.</li>
+    </ul>
+
+    <p>FitNesse is a web server.</p>
+
+    <ul>
+      <li>It requires no configuration or setup.</li>
+
+      <li>Just run it and then direct your browser to the machine
+      where it is running.</li>
+    </ul>
+
+    <h2>FitNesse Links</h2>
+
+    <p>More information can be found at the <a href=
+    "http://www.fitnesse.org">FitNesse website</a> or in the  <a href=
+    "http://www.fitnesse.org/.FitNesse.UserGuide">FitNesse
+    User Guide</a>.</p>
+
+    <h2>ElectricFlow Integration to FitNesse</h2>
+    <!-- The integration description should answer the questions:
+How deep does our integration go? Why should I care? What general
+functionality does the plugin include? What functionality does
+the plugin omit?
+-->
+
+    <p>The plugin communicates with FitNesse through its
+    RestfulServices which provides access to all of its functions
+    by passing it URLs. The EC-FitNesse plugin allows users to run test suites from an existing server or starting a new one,
+    providing a generic interface for managing test.</p>
+
+    <p>The plugin interacts with FitNesse using PERL to perform the
+    following tasks:</p>
+
+    <ul>
+      <li>Create a new instance of a FitNesse server.</li>
+
+      <li>Run tests and suites on a new server.</li>
+
+      <li>Run tests and suites on an existing server.</li>
+
+      <li>Create reports from the test results.</li>
+    </ul>
+
+    <h2>Integrated Version</h2>
+
+    <p>This plugin was developed and tested against FitNesse
+    version 20120228. This plugin requires ElectricFlow minimum version 4.1.</p>
+
+    <h1>Plugin Procedures</h1>
+	<p>IMPORTANT: In the ElectricFlow UI, from the Home page, open the Main Menu, and click <b>Admin</b> > <b>Plugins</b> to open the Plugin Manager.</p>
+    <p>IMPORTANT: For all parameter descriptions below, required
+    parameters are shown in <span class='required'>bold
+    italics</span>.</p>
+
+    <div id="CreateFitNesseInstance"><a name=
+    "CreateFitNesseInstance" id="CreateFitNesseInstance"></a>
+
+    <h3>CreateFitNesseInstance</h3>
+
+    <p>This procedure creates a new FitNesse instance using CLI
+    parameter.</p>
+
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+
+          <th>Description</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td class="required">FitNesse jarfile path</td>
+
+          <td>Directory where fitnesse.jar is located.
+          (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">FitNesseRoot path</td>
+
+          <td>The directory in which FitNesse expects to find its
+          page root. It defaults to the fitnesse.jar directory plus
+          '/FitNesseRoot'. (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">FitNesse Port</td>
+
+          <td>The port number that a FitNesse new instance listens
+          to. The default is 80, because this is the port that
+          web browsers use by default. If your machine already
+          has a web server running, it will be using port 80, so
+          FitNesse should be set up to use a different port, such as
+          8080. (Required)</td>
+        </tr>
+
+        <tr>
+          <td>Java extra args</td>
+
+          <td>Additional command line arguments to create a new
+          Fitnesse instance. (For example, -o, -l &lt;path&gt; {no
+          logging}, -Xmx...).</td>
+        </tr>
+
+        <tr>
+          <td>Path to java</td>
+
+          <td>Path where the Java bin directory is located.</td>
+        </tr>
+
+        <tr>
+          <td>JobStep Timeout</td>
+
+          <td>Timeout for the step execution in minutes. Blank
+          means no timeout.</td>
+        </tr>
+      </tbody>
+    </table><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/parameters/CreateFitNesseInstance_panel.png" /></div>
+
+    <div id="RunTestOnNewInstance"><a name="RunTestOnNewInstance"
+    id="RunTestOnNewInstance"></a>
+
+    <h3>RunTestOnNewInstance</h3>
+
+    <p>This procedure allows users to run FitNesse tests and suites
+    by creating a new FitNesse instance (with CLI) with the provided
+    parameters and then uses REST to execute tests. At the end, it
+    stops the instance.</p>
+
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+
+          <th>Description</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td class="required">FitNesse jarfile path</td>
+
+          <td>Directory where fitnesse.jar is located.
+          (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">FitNesseRoot path</td>
+
+          <td>The directory in which FitNesse expects to find its
+          page root. It defaults to the fitnesse.jar directory plus
+          '/FitNesseRoot'. (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">FitNesse Port</td>
+
+          <td>The port number that a FitNesse new instance listens
+          to. The default is 80, because this is the port that
+          web browsers use by default. If your machine already
+          has a web server running, it will be using port 80, so
+          FitNesse should be set up to use a different port, such as
+          8080. (Required)</td>
+        </tr>
+
+        <tr>
+          <td>Java extra args</td>
+
+          <td>Additional command line arguments to create a new
+          Fitnesse instance. (For example, -o, -l &lt;path&gt; {no
+          logging}, -Xmx...).</td>
+        </tr>
+
+        <tr>
+          <td>Path to java</td>
+
+          <td>Path where the Java bin directory is located.</td>
+        </tr>
+
+        <tr>
+          <td>Results filename</td>
+
+          <td>Provide the path and file name for the resulting XML
+          file.</td>
+        </tr>
+
+        <tr>
+          <td class="required">Target page</td>
+
+          <td>The name of the FitNesse wiki page being referenced
+          to execute as the test target. (For example,
+          FitNesse.SuiteAcceptanceTests or
+          FitNesse.SuiteAcceptanceTests.SuiteSlimTests.ChainTest.)
+          (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">Target Type</td>
+
+          <td>Select the type for the target. (Required)</td>
+        </tr>
+
+        <tr>
+          <td>JobStep Timeout</td>
+
+          <td>Timeout for the step execution in minutes. Blank
+          means no timeout.</td>
+        </tr>
+      </tbody>
+    </table><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/parameters/RunTestOnNewInstance_panel.png" /></div>
+
+    <div id="RunTestOnExistingInstance"><a name=
+    "RunTestOnExistingInstance" id="RunTestOnExistingInstance"></a>
+
+    <h3>RunTestOnExistingInstance</h3>
+
+    <p>This subprocedure allows users to run FitNesse tests and
+    suites on an existing FitNesse instance using REST to execute
+    tests.</p>
+
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+
+          <th>Description</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td class="required">FitNesse Host</td>
+
+          <td>Provide the hostname for the existing FitNesse
+          server. (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">FitNesse Port</td>
+
+          <td>The port number that a FitNesse new instance listens
+          to. The default is 80, because this is the port that
+          web browsers use by default. If your machine already
+          has a web server running, it will be using port 80, so
+          FitNesse should be set up to use a different port, such as
+          8080. (Required)</td>
+        </tr>
+
+        <tr>
+          <td>Results filename</td>
+
+          <td>Provide the path and file name for the resulting XML
+          file.</td>
+        </tr>
+
+        <tr>
+          <td class="required">Stop Instance?</td>
+
+          <td>Checkbox to stop the existing instance after the test
+          is done. (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">Target page</td>
+
+          <td>The name of the FitNesse wiki page being referenced
+          to execute as the test target. (For example,
+          FitNesse.SuiteAcceptanceTests or
+          FitNesse.SuiteAcceptanceTests.SuiteSlimTests.ChainTest.)
+          (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">Target Type</td>
+
+          <td>Select the type for the target. (Required)</td>
+        </tr>
+
+        <tr>
+          <td>JobStep Timeout</td>
+
+          <td>Timeout for the step execution in minutes. Blank
+          means no timeout.</td>
+        </tr>
+      </tbody>
+    </table><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/parameters/RunTestOnExistingInstance_panel.png" /></div>
+
+    <div id="StopFitNesseInstance"><a name="StopFitNesseInstance"
+    id="StopFitNesseInstance"></a>
+
+    <h3>StopFitNesseInstance</h3>
+
+    <p>This subprocedure allows users to stop a running FitNesse
+    instance using REST.</p>
+
+    <table class="grid">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+
+          <th>Description</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td class="required">FitNesse Host</td>
+
+          <td>Provide the hostname for the existing FitNesse
+          server. (Required)</td>
+        </tr>
+
+        <tr>
+          <td class="required">FitNesse Port</td>
+
+          <td>The port number that FitNesse new instance listens
+          to. The default is 80, because this is the port that
+          web browsers use by default. If your machine already
+          has a web server running, it will be using port 80, so
+          FitNesse should be set up to use a different port, such as
+          8080. (Required)</td>
+        </tr>
+
+        <tr>
+          <td>JobStep Timeout</td>
+
+          <td>Timeout for the step execution in minutes. Blank
+          means no timeout.</td>
+        </tr>
+      </tbody>
+    </table><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/parameters/StopFitNesseInstance_panel.png" /></div>
+
+    <h1>Use Cases and Examples</h1>
+    <!-- This section is for examples and use cases, including screenshots of the new Parameter Panel with example values filled in.
+Unfortunately, I can't tell you what exactly to put here, but it's OK to put what seems like too much! Include both parameter
+values and output where appropriate. Use a separate 'h2' header for each example. Under the h2 header try to stay with the style
+outline used above where possible.
+-->
+
+    <h2>Run Tests on New Instance.</h2>
+
+    <p>The most common use for this plugin is to run tests or
+    suites creating a new FitNesse instance. To accomplish these
+    tasks you must:</p>
+
+    <ol>
+      <li>Create a subprocedure of RunTestOnNewInstance.</li>
+
+      <li>Fill in the required and additional parameters.</li>
+
+      <li>Run the subprocedure.</li>
+    </ol>
+
+    <h4>RunTestOnNewInstance</h4>
+
+    <p>The RunTestOnNewInstance procedure will create a new
+    FitNesse instance using the command line with provided
+    parameters, then it will execute the test or suite by using a
+    REST command on the newly created server. It will save the XML
+    response of this request on the workpace, then it will create a
+    Results Report, and finally it will shut down the server.<br />
+    Create a new subprocedure by specifying the requested
+    parameters:</p><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/examples/RunTestOnNewInstance_parameters.png" />
+
+    <h4>Results and Outputs</h4>
+
+    <p>Once the job finished, you can see the results.<br />
+    <img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/examples/job.png" /></p>
+
+    <p>RunTestOnNewInstance Output:</p><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/examples/log.png" />
+
+    <p>Results Report:</p><img alt="" src=
+    "../../plugins/@PLUGIN_KEY@/images/examples/report.png" />
+
+    <h1>Release Notes</h1>
+    <h2>@PLUGIN_KEY@-1.0.3</h2>    <ul>        <li>Renamed ElectricCommander to ElectricFlow.</li>    </ul>
+    <h2>@PLUGIN_KEY@-1.0.2</h2>
+
+    <ul>
+        <li>Procedure name(s) were changed in the step picker section.</li>
+    </ul>
+    
+    <h2>@PLUGIN_KEY@-1.0.1</h2>
+
+    <ul>
+      <li>Fixed compatibility with earlier versions of ElectricFlow.</li>
+
+      <li>Added error postp matchers.</li>
+
+      <li>Fixed error handling.</li>
+
+      <li>Fixed saving files with spaces or special characters in
+      filenames.</li>
+    </ul>
+
+    <h2>@PLUGIN_KEY@-1.0.0</h2>
+
+    <ul>
+      <li>Procedures: createFitNesseInstance, RunTestOnNewInstance,
+      runTestOnExistingInstance and stopFitNesseInstance.</li>
+
+      <li>Added postp matchers.</li>
+
+      <li>Created reports.</li>
+
+      <li>Implemented XML parameter panel.</li>
+
+      <li>Applied new Help page template.</li>
+    </ul>
+  </div>
+</body>
+</html>

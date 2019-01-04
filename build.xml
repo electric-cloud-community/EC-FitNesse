@@ -1,0 +1,15 @@
+<project name="EC-FitNesse" default="package" basedir=".">
+	<description>
+        Build the EC-FitNesse plugin
+    </description>
+
+    <property name="buildconfigdir" value="../Plugin-In-A-Box/scripts" />
+    
+	<!-- plugin specific properties -->
+	<property name="pluginKey" value="EC-FitNesse" />
+	<property name="pluginVersion" value="1.0" />
+    <property name="gwtModules" value="ecplugins.fitnesse.Reports" />
+
+    <import file="${buildconfigdir}/buildTargets.xml"/>
+
+</project>

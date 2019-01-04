@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin>
+    <key>@PLUGIN_KEY@</key>
+    <version>@PLUGIN_VERSION@</version>
+    <label>@PLUGIN_KEY@</label>
+    <description>Integration for FitNesse</description>
+    <help>@PLUGIN_KEY@_help.xml</help>
+    <author>Electric Cloud</author>
+    <authorUrl>http://www.electric-cloud.com/support</authorUrl>
+    <category>Test</category>
+    <commander-version min="3.6"/>
+    <customTypes>
+        <customType name="reports">
+            <displayName>Display FitNesse Report</displayName>
+            <description>description for FitNesse reports custom type.</description>
+            <page pageName="fitReports" definition="pages/reports.xml"/>
+        </customType>
+    </customTypes>
+    <components>
+        <component name="Reports">
+            <javascript>war/ecplugins.fitnesse.Reports/ecplugins.fitnesse.Reports.nocache.js</javascript>
+        </component>
+    </components>
+</plugin>

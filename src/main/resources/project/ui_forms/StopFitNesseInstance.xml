@@ -1,0 +1,27 @@
+<editor>
+    <help>/commander/pages/@PLUGIN_NAME@/@PLUGIN_KEY@_help?s=Administration&amp;ss=Plugins#StopFitNesseInstance</help>
+    <formElement>
+        <label>FitNesse Host:</label>
+        <property>fitnesse_host</property>
+        <value></value>
+        <documentation> Provide the hostname for the existing FitNesse server.</documentation>
+        <required>1</required>
+        <type>entry</type>
+    </formElement>
+    <formElement>
+        <label>FitNesse Port:</label>
+        <property>instance_port</property>
+        <value></value>
+        <documentation>The port number that FitNesse new instance listens to.  The default is 80 because this is the port that internet browsers use by default.  If your machine already has a web server running, it will be using port 80, so FitNesse should be set up to use a different port, like 8080.  </documentation>
+        <required>1</required>
+        <type>entry</type>
+    </formElement>
+    <formElement>
+        <label>JobStep Timeout:</label>
+        <property>timeout</property>
+        <value></value>
+        <documentation>Timeout for the step execution in minutes. Blank means no timeout.</documentation>
+        <required>0</required>
+        <type>entry</type>
+    </formElement>
+</editor>

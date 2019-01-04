@@ -1,0 +1,7 @@
+<configDefinition>
+  <title>FIT Report</title>
+  <helpLink>/link/showHelp?page=rallyhelp</helpLink>     
+    <componentContainer>
+         <component plugin="@PLUGIN_KEY@" version="@PLUGIN_VERSION@" ref="Reports" />
+    </componentContainer>  
+</configDefinition>

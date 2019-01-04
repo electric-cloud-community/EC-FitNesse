@@ -1,0 +1,1038 @@
+# -*-Perl-*-
+
+# fitnesse_tests.ntest -
+#
+# EC-FitNesse
+#
+# Copyright (c) 2005-2012 Electric Cloud, Inc.
+# All rights reserved
+
+use strict;
+use warnings;
+use ECTest;
+
+# system tests
+require "$::gTestFileDir/ntest.common";
+
+$::grunFitNesseCreated = 0;
+$::gProjectImported    = 0;
+$::gtestProjectName    = 'FitNesse_tests';
+
+use constant { LINUX => "linux", };
+
+my $outcome = '';
+
+sub importProject() {
+    assertOK(
+             $::N->import(
+                          {
+                            file  => "$::gTestFileDir/FitNesse_tests.xml",
+                            path  => "/projects/FitNesse_tests",
+                            force => 1
+                          }
+                         ),
+             "import runCommandLine"
+            );
+
+    assertOK($::N->getProcedure($::gtestProjectName, 'CreateFitNesseInstance with all parameters'), 'CreateFitNesseInstance with all parameters procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'CreateFitNesseInstance with required parameters'), 'CreateFitNesseInstance with required parameters procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'RunTestOnExistingInstance with all parameters'), 'RunTestOnExistingInstance with all parameters procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'RunTestOnExistingInstance with required parameters'), 'RunTestOnExistingInstance with required parameters procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'RunTestOnNewInstance with all parameters (Suite)'), 'RunTestOnNewInstance with all parameters (Suite) procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'RunTestOnNewInstance with all parameters (Test)'), 'RunTestOnNewInstance with all parameters (Test) procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'RunTestOnNewInstance with required parameters (Suite)'), 'RunTestOnNewInstance with required parameters (Suite) procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'RunTestOnNewInstance with required parameters (Test)'), 'RunTestOnNewInstance with required parameters (Test) procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'StopFitNesseInstance with all parameters'), 'StopFitNesseInstance with all parameters procedure doesn\'t exist');
+    assertOK($::N->getProcedure($::gtestProjectName, 'StopFitNesseInstance with required parameters'), 'StopFitNesseInstance with required parameters procedure doesn\'t exist');
+    
+
+    $::gProjectImported = 1;
+}
+
+sub doSetup() {
+
+    if (!$::gProjectImported) {
+        importProject();
+    }
+
+}
+
+################################
+# check-components-present - Check that the plugin contains required components
+#
+# Arguments:
+#   none
+#
+# Returns:
+#   none
+#
+################################
+
+ntest 'check-components-present', {}, sub {
+
+    # Check that the plugin contains required components
+
+    my $xpath;
+    $xpath = $::N->getSteps("$::gPlugin_name", "CreateFitNesseInstance");
+    assertOK($xpath, "CreateFitNesseInstance");
+    assertEq("SetTimelimit",           $xpath->findvalue("//step[1]/stepName"), "step 1 is SetTimelimit");
+    assertEq("CreateFitNesseInstance", $xpath->findvalue("//step[2]/stepName"), "step 2 is CreateFitNesseInstance");
+
+    $xpath = $::N->getSteps("$::gPlugin_name", "RunTestOnExistingInstance");
+    assertOK($xpath, "RunTestOnExistingInstance");
+    assertEq("SetTimelimit",              $xpath->findvalue("//step[1]/stepName"), "step 1 is SetTimelimit");
+    assertEq("RunTestOnExistingInstance", $xpath->findvalue("//step[2]/stepName"), "step 2 is RunTestOnExistingInstance");
+
+    $xpath = $::N->getSteps("$::gPlugin_name", "RunTestOnNewInstance");
+    assertOK($xpath, "RunTestOnNewInstance");
+    assertEq("SetTimelimit",         $xpath->findvalue("//step[1]/stepName"), "step 1 is SetTimelimit");
+    assertEq("RunTestOnNewInstance", $xpath->findvalue("//step[2]/stepName"), "step 2 is RunTestOnNewInstance");
+
+    $xpath = $::N->getSteps("$::gPlugin_name", "StopFitNesseInstance");
+    assertOK($xpath, "StopFitNesseInstance");
+    assertEq("SetTimelimit",         $xpath->findvalue("//step[1]/stepName"), "step 1 is SetTimelimit");
+    assertEq("StopFitNesseInstance", $xpath->findvalue("//step[2]/stepName"), "step 2 is StopFitNesseInstance");
+
+};
+
+
+ntest "01. CreateFitNesseInstance with all parameters", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "CreateFitNesseInstance with all parameters",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='CreateFitNesseInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='CreateFitNesseInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Creating command for new FitNesse instance...\n";
+    $expectedOutput .= "Starting FitNesse instance...\n";
+    $expectedOutput .= "Starting daemon for C:/Program Files/Java/jre6/bin/java\n";
+    $expectedOutput .= "FitNesse instance running on http://localhost:8773\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'CreateFitNesseInstance with all parameters successful output');
+
+};
+
+ntest "02. CreateFitNesseInstance with required parameters", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "CreateFitNesseInstance with required parameters",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='CreateFitNesseInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='CreateFitNesseInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Creating command for new FitNesse instance...\n";
+    $expectedOutput .= "Starting FitNesse instance...\n";
+    $expectedOutput .= "Starting daemon for java\n";
+    $expectedOutput .= "FitNesse instance running on http://localhost:8773\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'CreateFitNesseInstance with required parameters successful output');
+
+};
+
+ntest "03. RunTestOnExistingInstance with all parameters", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "RunTestOnExistingInstance with all parameters",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='RunTestOnExistingInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='RunTestOnExistingInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Running FitNesse Test...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/FitNesse.SuiteAcceptanceTests?suite&format=xml\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "FitNesse Version: v20120228\n";
+    $expectedOutput .= "Suite Name: SuiteAcceptanceTests\n";
+    $expectedOutput .= "Total Right: 237\n";
+    $expectedOutput .= "Total Wrong: 4\n";
+    $expectedOutput .= "Total Ignores: 0\n";
+    $expectedOutput .= "Total Exceptions: 0\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AlwaysSecureOperation\n";
+    $expectedOutput .= "Right: 14\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SecureReadOperations\n";
+    $expectedOutput .= "Right: 30\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SecureTestOperations\n";
+    $expectedOutput .= "Right: 4\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SecureWriteOperations\n";
+    $expectedOutput .= "Right: 8\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestNavigationWithSuite\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 13\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestNavigationWithTest\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 13\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "Saving results to C:/Users/aarias/Desktop/FitNesse/out.xml\n";
+    $expectedOutput .= "Saving results to N:/job_644_201203161121/out.xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'RunTestOnExistingInstance with all parameters successful output');
+
+};
+
+ntest "04. RunTestOnExistingInstance with required parameters", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "RunTestOnExistingInstance with required parameters",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='RunTestOnExistingInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='RunTestOnExistingInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Running FitNesse Test...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/FitNesse.SuiteAcceptanceTests?suite&format=xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "FitNesse Version: v20120228\n";
+    $expectedOutput .= "Suite Name: SuiteAcceptanceTests\n";
+    $expectedOutput .= "Total Right: 237\n";
+    $expectedOutput .= "Total Wrong: 4\n";
+    $expectedOutput .= "Total Ignores: 0\n";
+    $expectedOutput .= "Total Exceptions: 0\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AlwaysSecureOperation\n";
+    $expectedOutput .= "Right: 14\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SecureReadOperations\n";
+    $expectedOutput .= "Right: 30\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SecureTestOperations\n";
+    $expectedOutput .= "Right: 4\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestNavigationDefault\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 12\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestNavigationWithSuite\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 13\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestNavigationWithTest\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 13\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "Saving results to N:/job_703_201203161339/result.xml\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'RunTestOnExistingInstance with required parameters successful output');
+
+};
+
+ntest "05. RunTestOnNewInstance with all parameters (Suite)", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "RunTestOnNewInstance with all parameters (Suite)",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Creating command for new FitNesse instance...\n";
+    $expectedOutput .= "Starting FitNesse instance...\n";
+    $expectedOutput .= "Starting daemon for C:/Program Files/Java/jre6/bin/java\n";
+    $expectedOutput .= "FitNesse instance running on http://localhost:8773\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Running FitNesse Test...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/FitNesse.SuiteAcceptanceTests.SuiteResponderTests?suite&format=xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "FitNesse Version: v20120228\n";
+    $expectedOutput .= "Suite Name: SuiteResponderTests\n";
+    $expectedOutput .= "Total Right: 71\n";
+    $expectedOutput .= "Total Wrong: 0\n";
+    $expectedOutput .= "Total Ignores: 0\n";
+    $expectedOutput .= "Total Exceptions: 0\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddChildToNonExistentPageTest\n";
+    $expectedOutput .= "Right: 3\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddDefaultWithNameOfSuiteTest\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddDefaultWithNameOfTestTest\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddInvalidChildNameTest\n";
+    $expectedOutput .= "Right: 1\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestSuiteSetUpAndTearDownAreHidden\n";
+    $expectedOutput .= "Right: 7\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 1\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SuiteTearDown\n";
+    $expectedOutput .= "Right: 1\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "Saving results to C:/Users/aarias/Desktop/FitNesse/out.xml\n";
+    $expectedOutput .= "Saving results to N:/job_714_201203161426/out.xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'RunTestOnNewInstance with all parameters (Suite) successful output');
+
+};
+
+ntest "06. RunTestOnNewInstance with all parameters (Test)", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "RunTestOnNewInstance with all parameters (Test)",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Creating command for new FitNesse instance...\n";
+    $expectedOutput .= "Starting FitNesse instance...\n";
+    $expectedOutput .= "Starting daemon for C:/Program Files/Java/jre6/bin/java\n";
+    $expectedOutput .= "FitNesse instance running on http://localhost:8773\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Running FitNesse Test...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/FitNesse.SuiteAcceptanceTests.SuiteSlimTests.ChainTest?test&format=xml\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "FitNesse Version: v20120228\n";
+    $expectedOutput .= "Test Name: ChainTest\n";
+    $expectedOutput .= "Total Right: 4\n";
+    $expectedOutput .= "Total Wrong: 0\n";
+    $expectedOutput .= "Total Ignores: 0\n";
+    $expectedOutput .= "Total Exceptions: 0\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "Saving results to C:/Users/aarias/Desktop/FitNesse/out.xml\n";
+    $expectedOutput .= "Saving results to N:/job_717_201203161435/out.xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'RunTestOnNewInstance with all parameters (Test) successful output');
+
+};
+
+ntest "07. RunTestOnNewInstance with required parameters (Suite)", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "RunTestOnNewInstance with required parameters (Suite)",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Creating command for new FitNesse instance...\n";
+    $expectedOutput .= "Starting FitNesse instance...\n";
+    $expectedOutput .= "Starting daemon for java\n";
+    $expectedOutput .= "FitNesse instance running on http://localhost:8773\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Running FitNesse Test...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/FitNesse.SuiteAcceptanceTests.SuiteResponderTests?suite&format=xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "FitNesse Version: v20120228\n";
+    $expectedOutput .= "Suite Name: SuiteResponderTests\n";
+    $expectedOutput .= "Total Right: 71\n";
+    $expectedOutput .= "Total Wrong: 0\n";
+    $expectedOutput .= "Total Ignores: 0\n";
+    $expectedOutput .= "Total Exceptions: 0\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddChildToNonExistentPageTest\n";
+    $expectedOutput .= "Right: 3\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddDefaultWithNameOfSuiteTest\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddDefaultWithNameOfTestTest\n";
+    $expectedOutput .= "Right: 2\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: AddInvalidChildNameTest\n";
+    $expectedOutput .= "Right: 1\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestSetUpAndTearDownAreUncollapsedWithVariable\n";
+    $expectedOutput .= "Right: 6\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 1\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: TestSuiteSetUpAndTearDownAreHidden\n";
+    $expectedOutput .= "Right: 7\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 1\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "-----------------------------------------------------------\n";
+    $expectedOutput .= "Test: SuiteTearDown\n";
+    $expectedOutput .= "Right: 1\n";
+    $expectedOutput .= "Wrong: 0\n";
+    $expectedOutput .= "Ignores: 0\n";
+    $expectedOutput .= "Exceptions: 0\n";
+    $expectedOutput .= "Saving results to N:/job_718_201203161438/result.xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'RunTestOnNewInstance with required parameters (Suite) successful output');
+
+};
+
+ntest "08. RunTestOnNewInstance with required parameters (Test)", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "RunTestOnNewInstance with required parameters (Test)",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='RunTestOnNewInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Creating command for new FitNesse instance...\n";
+    $expectedOutput .= "Starting FitNesse instance...\n";
+    $expectedOutput .= "Starting daemon for java\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "FitNesse instance running on http://localhost:8773\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Running FitNesse Test...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/FitNesse.SuiteAcceptanceTests.SuiteSlimTests.ChainTest?test&format=xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "FitNesse Version: v20120228\n";
+    $expectedOutput .= "Test Name: ChainTest\n";
+    $expectedOutput .= "Total Right: 4\n";
+    $expectedOutput .= "Total Wrong: 0\n";
+    $expectedOutput .= "Total Ignores: 0\n";
+    $expectedOutput .= "Total Exceptions: 0\n";
+    $expectedOutput .= "\n";
+    $expectedOutput .= "Saving results to N:/job_720_201203161442/result.xml\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'RunTestOnNewInstance with required parameters (Test) successful output');
+
+};
+
+ntest "09. StopFitNesseInstance with all parameters", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+                                   $::gtestProjectName,
+                                   {
+                                      procedureName   => "StopFitNesseInstance with all parameters",
+                                      pollInterval    => '1',
+                                      timeout         => 600,
+                                      actualParameter => [],
+                                   }
+                                  );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='StopFitNesseInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='StopFitNesseInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'StopFitNesseInstance with all parameters successful output');
+
+};
+
+ntest "10. StopFitNesseInstance with required parameters", {}, sub {
+
+    doSetup();
+
+    # run test job
+    my $xpath = $::N->runProcedure(
+        $::gtestProjectName,
+        {
+           procedureName   => "StopFitNesseInstance with required parameters",
+           pollInterval    => '1',
+           timeout         => 600,
+           actualParameter => [],
+        }
+    );
+
+    # make sure it finished
+    my $jobId     = 0;
+    my $jobStepId = 0;
+    my $status    = "";
+
+    assertOK($xpath, 'runProcedure finished');
+    if ($xpath) {
+        $jobId  = $xpath->findvalue("//jobId");
+        $status = $xpath->findvalue("//status");
+
+        assertTrue($jobId && $jobId ne "",'valid job id');
+        assertEq('completed', $status, "job $jobId complete");
+
+        #abort if job did not finish
+        if ($status ne "completed") {
+            assertOK($::N->abortJob($jobId, { force => 1 }));
+        }
+    }
+
+    # get the job details
+    $xpath = $::N->getJobDetails($jobId);
+
+    # Get the root of log files. use UNC so it works from
+    # command line as well as within a CMD step
+    my $ws = $xpath->findvalue("//workspace/winUNC");
+    if (!isWindows()) {
+        $ws = $xpath->findvalue("//workspace/unix");
+    }
+
+    # Get the name of the log file
+    my $logFileName = $ws . "/" . $xpath->findvalue("//jobStep[stepName='StopFitNesseInstance']/logFileName");
+
+    # Get the jobStepId for FitNesse
+    $jobStepId = $xpath->findvalue("//jobStep[stepName='StopFitNesseInstance']/jobStepId");
+
+    # Read the log file and verify its contents.
+    my $data = readFile($logFileName);
+
+    # write the job details to a file in the test directory
+    writeFile("$::gCurrentTestDir/FitNesse.log", "====Job Details====\n$xpath->{_xml}\n====LOG====\n$data\n");
+
+    #assert command lines
+    my $expectedOutput = "";
+    $expectedOutput .= "Using plugin EC-FitNesse version " . $::gPlugin_ver . "\n";
+    $expectedOutput .= "---------------------------------------------------------------------\n";
+    $expectedOutput .= "Stopping FitNesse instance...\n";
+    $expectedOutput .= "Creating REST url...\n";
+    $expectedOutput .= "URL: http://localhost:8773/?shutdown&format=xml\n";
+    $expectedOutput .= "FitNesse instance at http://localhost:8773 stopped successfully.\n";
+
+    assertDiff(outdent($expectedOutput), $data, 'StopFitNesseInstance with required parameters successful output');
+
+};
+
+1;
